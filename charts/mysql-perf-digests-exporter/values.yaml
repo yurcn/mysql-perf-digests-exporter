@@ -59,7 +59,7 @@ readinessProbe:
 env: []
 
 config:
-  name: mysql-perf-digest-exporter
+  name: mysql-perf-digests-exporter
   period: 120
   listenAddress: 0.0.0.0
   listenPort: 3162

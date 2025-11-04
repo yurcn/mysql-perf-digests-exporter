@@ -1,25 +1,25 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ include "mysql-perf-digest-exporter.fullname" . }}
-  labels: {{- include "mysql-perf-digest-exporter.labels" . | nindent 4 }}
+  name: {{ include "mysql-perf-digests-exporter.fullname" . }}
+  labels: {{- include "mysql-perf-digests-exporter.labels" . | nindent 4 }}
 spec:
   replicas: {{ .Values.replicaCount }}
   selector:
-    matchLabels: {{- include "mysql-perf-digest-exporter.selectorLabels" . | nindent 6 }}
+    matchLabels: {{- include "mysql-perf-digests-exporter.selectorLabels" . | nindent 6 }}
   template:
     metadata:
-      labels: {{- include "mysql-perf-digest-exporter.selectorLabels" . | nindent 8 }}
+      labels: {{- include "mysql-perf-digests-exporter.selectorLabels" . | nindent 8 }}
       annotations:
         checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
         {{- with .Values.podAnnotations }}
         {{- toYaml . | nindent 8 }}
         {{- end }}
     spec:
-      serviceAccountName: {{ include "mysql-perf-digest-exporter.serviceAccountName" . }}
+      serviceAccountName: {{ include "mysql-perf-digests-exporter.serviceAccountName" . }}
       securityContext: {{- toYaml .Values.securityContext | nindent 8 }}
       containers:
-        - name: mysql-perf-digest-exporter
+        - name: mysql-perf-digests-exporter
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           ports:
@@ -66,7 +66,7 @@ spec:
       volumes:
         - name: config
           configMap:
-            name: {{ include "mysql-perf-digest-exporter.fullname" . }}
+            name: {{ include "mysql-perf-digests-exporter.fullname" . }}
             items:
               - key: perf_digest2loki-config.yml
                 path: perf_digest2loki-config.yml

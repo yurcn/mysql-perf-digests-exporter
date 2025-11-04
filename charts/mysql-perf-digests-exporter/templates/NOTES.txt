@@ -1,5 +1,5 @@
 1. Get the app URL by running these commands:
-  export POD=$(kubectl get pods -l app.kubernetes.io/name={{ include "mysql-perf-digest-exporter.name" . }} -o jsonpath="{.items[0].metadata.name}")
+  export POD=$(kubectl get pods -l app.kubernetes.io/name={{ include "mysql-perf-digests-exporter.name" . }} -o jsonpath="{.items[0].metadata.name}")
   kubectl port-forward $POD 3162:3162
   curl http://127.0.0.1:3162/metrics
 

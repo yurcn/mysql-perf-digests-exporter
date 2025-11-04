@@ -2,7 +2,7 @@
 apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
-  name: {{ include "mysql-perf-digest-exporter.fullname" . }}
+  name: {{ include "mysql-perf-digests-exporter.fullname" . }}
   labels:
     release: prometheus
     {{- with .Values.serviceMonitor.labels }}
@@ -17,7 +17,7 @@ spec:
     matchNames: [{{ .Values.serviceMonitor.namespace | quote }}]
   {{- end }}
   selector:
-    matchLabels: {{- include "mysql-perf-digest-exporter.selectorLabels" . | nindent 6 }}
+    matchLabels: {{- include "mysql-perf-digests-exporter.selectorLabels" . | nindent 6 }}
   endpoints:
     - port: http
       path: /metrics
