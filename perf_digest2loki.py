@@ -163,45 +163,82 @@ def _fetch_rows_blocking(host,user,pw,port,query):
         with contextlib.suppress(Exception):
             if conn: conn.close()
 
-async def run_probe_once(inst: dict, *, override_host: str|None=None) -> tuple[bool,int]:
+async def on_startup(app: web.Application):
+    for inst in INSTANCES:
+        DIGEST_UP.labels(inst["name"]).set(0)
+
+    for tag in (EXTRA_TAGS_CFG or []):
+        if tag.startswith(("COUNT_","SUM_")):
+            get_counter_for(tag)
+
+    app["periodic_task"] = asyncio.create_task(periodic_task(app))
+
+async def run_probe_once(inst: dict, *, override_host: str | None = None) -> tuple[bool, int]:
     if not QUERY or not inst.get("user") or not inst.get("pass"):
-        return False,0
+        return False, 0
+
     host = override_host or inst["host"]
+
     try:
-        rows = await asyncio.to_thread(_fetch_rows_blocking, host, inst["user"], inst["pass"], int(inst["port"]), QUERY)
-        processed=0
+        rows = await asyncio.to_thread(
+            _fetch_rows_blocking,
+            host, inst["user"], inst["pass"], int(inst["port"]), QUERY
+        )
+        processed = 0
+
         for row in rows:
-            if not row or LOG_KEY not in row or row[LOG_KEY] is None: continue
+            if not row or LOG_KEY not in row or row[LOG_KEY] is None:
+                continue
+
             stmt = apply_replacements(str(row[LOG_KEY]))
-            schema = str(row.get("SCHEMA_NAME",""))
-            digest = str(row.get("DIGEST",""))[:10] if row.get("DIGEST") else ""
-            # counters: deltas for COUNT_/SUM_
+            schema = str(row.get("SCHEMA_NAME", ""))
+            digest = str(row.get("DIGEST", ""))[:10] if row.get("DIGEST") else ""
             extra_tags = build_extra_tags(row, EXTRA_TAGS_CFG)
+
             for tag in (EXTRA_TAGS_CFG or []):
-                if tag.startswith(("COUNT_","SUM_")):
-                    try: val=int(row.get(tag,0))
-                    except Exception: val=0
-                    key=(inst["name"], schema, digest, tag)
-                    prev = SEEN.get(key); delta = 0 if prev is None else max(0, val-prev)
-                    SEEN.set(key,val)
-                    if delta>0:
-                        get_counter_for(tag).labels(inst["name"], schema, digest).inc(delta)
-                    extra_tags[f"DIFF_{tag}"]=str(delta)
+                if tag.startswith(("COUNT_", "SUM_")):
+                    try:
+                        val = int(row.get(tag, 0))
+                    except Exception:
+                        val = 0
+
+                    key = (inst["name"], schema, digest, tag)
+                    prev = SEEN.get(key)
+                    ctr = get_counter_for(tag).labels(inst["name"], schema, digest)
+
+                    if prev is None:
+                        ctr.inc(0)
+                        SEEN.set(key, val)
+                        delta = 0
+                    else:
+                        if val >= prev:
+                            delta = val - prev
+                        else:
+                            delta = 0
+                        SEEN.set(key, val)
+
+                    if delta > 0:
+                        ctr.inc(delta)
+
+                    extra_tags[f"DIFF_{tag}"] = str(delta)
+
             if stmt:
-                # add instance tag to loki explicitly (loki handler has service-wide tag, but we want per-DB)
                 tags = {"instance": inst["name"], **extra_tags}
                 log_to_loki(stmt, tags)
-            processed+=1
-        return True, processed
-    except Exception:
-        return False,0
 
+            processed += 1
+
+        return True, processed
+
+    except Exception:
+        return False, 0
 # ----------------------------
 # HTTP
 # ----------------------------
 
 async def handle_metrics(request: web.Request):
-    return web.Response(body=generate_latest(REG), content_type=CONTENT_TYPE_LATEST)
+    data = generate_latest(REG)
+    return web.Response(body=data, headers={"Content-Type": CONTENT_TYPE_LATEST})
 
 async def handle_root(request: web.Request):
     return web.Response(text="See /metrics and /probe?instance=<name>&target=<host>\n")

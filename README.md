@@ -106,7 +106,7 @@ helm upgrade --install perf-digest charts/perf-digest \
   --set serviceMonitor.enabled=true
 ```
 
-Metrics are exposed at `/metrics`.
+Metrics are exposed at `/metrics` and supports on-demand `/probe?instance=&target=` for multiple hosts mode. Prometheus ServiceMonitor object for automatic Prometheus/Victoria Operator discovery is generated.
 
 ---
 
