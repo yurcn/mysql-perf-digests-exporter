@@ -2,8 +2,30 @@ apiVersion: v1
 entries:
   mysql-perf-digests-exporter:
   - apiVersion: v2
+    appVersion: v0.1.2
+    created: "2025-11-04T21:06:51.539088282Z"
+    description: Exporter that reads MySQL performance digests and ships to Loki/VictoriaLogs
+      + Prometheus/VictoriaMetrics metrics
+    digest: 3124701424ea0097a8e1dbd007297ef8fbed1f07e1e7413bc13aa039657e87bf
+    home: https://github.com/yurcn/mysql-perf-digests-exporter
+    icon: https://raw.githubusercontent.com/cncf/artwork/master/projects/prometheus/icon/color/prometheus-icon-color.png
+    keywords:
+    - mysql
+    - prometheus
+    - vmetrics
+    - victorialogs
+    - loki
+    - exporter
+    maintainers:
+    - name: yurcn
+    name: mysql-perf-digests-exporter
+    type: application
+    urls:
+    - https://yurcn.github.io/mysql-perf-digests-exporter/mysql-perf-digests-exporter-0.1.2.tgz
+    version: 0.1.2
+  - apiVersion: v2
     appVersion: v0.1.1
-    created: "2025-11-04T20:23:48.184281096Z"
+    created: "2025-11-04T21:06:51.538579293Z"
     description: Exporter that reads MySQL performance digests and ships to Loki/VictoriaLogs
       + Prometheus/VictoriaMetrics metrics
     digest: e225d548f159af40755505a21b8ae8630500c18a86dc7c1201edb88494146e72
@@ -23,4 +45,4 @@ entries:
     urls:
     - https://yurcn.github.io/mysql-perf-digests-exporter/mysql-perf-digests-exporter-0.1.1.tgz
     version: 0.1.1
-generated: "2025-11-04T20:23:48.18366262Z"
+generated: "2025-11-04T21:06:51.537199009Z"
