@@ -105,6 +105,7 @@ config:
   #  "\n": " "
 
 serviceMonitor:
+
   enabled: true
   namespace: ""          # if empty, stays in release namespace
   interval: 30s

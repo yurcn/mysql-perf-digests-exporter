@@ -59,16 +59,14 @@ mysql:
 ## Running with Helm
 
 ```bash
-helm mysql-perf-digests-exporter add perf-digest https://yurcn.github.io/mysql-perf-digests-exporter
-helm install perf-digest perf-digest/perf-digest \
-  --set image.mysql-perf-digests-exportersitory=ghcr.io/yurcn/mysql-perf-digests-exporter \
+helm install perf-digests oci://ghcr.io/yurcn/helm/mysql-perf-digests-exporter \
   --set serviceMonitor.enabled=true
 ```
 
 ### Override MySQL instances
 
 ```bash
-helm upgrade --install perf-digest charts/perf-digest \
+helm upgrade --install perf-digests oci://ghcr.io/yurcn/helm/mysql-perf-digests-exporter \
   --set config.mysql.instances[0].name=instance \
   --set config.mysql.instances[0].host=mysql-1 \
   --set config.mysql.instances[0].user=logger \
@@ -82,7 +80,7 @@ config:
   mysql:
     secretRefs:
       - instanceName: instance
-        name: perf-digest-credentials-instance
+        name: perf-digests-credentials-instance
 ```
 
 Secret example:

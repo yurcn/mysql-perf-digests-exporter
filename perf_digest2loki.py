@@ -150,7 +150,7 @@ def _fetch_rows_blocking(host,user,pw,port,query):
     try:
         conn=pymysql.connect(host=host,user=user,password=pw,port=port,
                              database=None,cursorclass=pymysql.cursors.DictCursor,
-                             connect_timeout=10,read_timeout=30,write_timeout=30,autocommit=True)
+                             connect_timeout=10,read_timeout=30,write_timeout=30,autocommit=False)
         with conn.cursor() as cur:
             cur.execute(query)
             rows=[];
