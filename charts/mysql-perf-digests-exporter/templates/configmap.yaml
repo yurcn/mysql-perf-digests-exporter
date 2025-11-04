@@ -1,0 +1,40 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "mysql-perf-digest-exporter.fullname" . }}
+  labels: {{- include "mysql-perf-digest-exporter.labels" . | nindent 4 }}
+  annotations: {}
+data:
+  perf_digest2loki-config.yml: |
+    name: {{ .Values.config.name | quote }}
+    period: {{ .Values.config.period }}
+    listen_address: {{ .Values.config.listenAddress | quote }}
+    listen_port: {{ .Values.config.listenPort }}
+    loki:
+      url: {{ .Values.config.loki.url | quote }}
+    mysql:
+      query: |
+{{ .Values.config.mysql.query | indent 8 }}
+      log_column: {{ .Values.config.mysql.logColumn | quote }}
+      extra_tags: {{ toJson .Values.config.mysql.extraTags }}
+      instances:
+{{- range $i, $inst := .Values.config.mysql.instances }}
+        - name: {{ $inst.name | quote }}
+          host: {{ $inst.host | quote }}
+          port: {{ $inst.port }}
+{{- $secret := (index (pluck "secretRefs" $.Values.config.mysql) 0) | default list }}
+{{- $found := dict }}
+{{- range $sr := $secret }}
+{{- if eq $sr.instanceName $inst.name }}
+{{- $_ := set $found "name" $sr.name }}
+{{- end }}
+{{- end }}
+{{- if hasKey $found "name" }}
+          user: "{{`{{- (print "${" }}`}}PERF_DIGEST_USER_{{ $inst.name | replace "-" "_" | upper }}{{`{{"}" -}}`}}"
+          pass: "{{`{{- (print "${" }}`}}PERF_DIGEST_PASS_{{ $inst.name | replace "-" "_" | upper }}{{`{{"}" -}}`}}"
+{{- else }}
+          user: {{ $inst.user | quote }}
+          pass: {{ $inst.pass | quote }}
+{{- end }}
+{{- end }}
+      replacements: {{ toJson (.Values.config.replacements | default dict) }}

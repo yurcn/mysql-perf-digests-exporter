@@ -1,0 +1,81 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "mysql-perf-digest-exporter.fullname" . }}
+  labels: {{- include "mysql-perf-digest-exporter.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels: {{- include "mysql-perf-digest-exporter.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels: {{- include "mysql-perf-digest-exporter.selectorLabels" . | nindent 8 }}
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+        {{- with .Values.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      serviceAccountName: {{ include "mysql-perf-digest-exporter.serviceAccountName" . }}
+      securityContext: {{- toYaml .Values.securityContext | nindent 8 }}
+      containers:
+        - name: mysql-perf-digest-exporter
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.service.port }}
+              protocol: TCP
+          env:
+            {{- range $i, $e := .Values.env }}
+            - name: {{ $e.name }}
+              value: {{ $e.value | quote }}
+            {{- end }}
+            {{- /* For every instance with a secretRef, expose PERF_DIGEST_USER_<NAME>, PERF_DIGEST_PASS_<NAME> */ -}}
+            {{- $instByName := dict }}
+            {{- range $idx, $it := .Values.config.mysql.instances }}
+            {{- $_ := set $instByName $it.name $it }}
+            {{- end }}
+            {{- range $sr := .Values.config.mysql.secretRefs | default list }}
+            - name: PERF_DIGEST_USER_{{ $sr.instanceName | replace "-" "_" | upper }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $sr.name }}
+                  key: user
+            - name: PERF_DIGEST_PASS_{{ $sr.instanceName | replace "-" "_" | upper }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $sr.name }}
+                  key: pass
+            {{- end }}
+          volumeMounts:
+            - name: config
+              mountPath: /app/perf_digest2loki-config.yml
+              subPath: perf_digest2loki-config.yml
+          {{- if .Values.livenessProbe.enabled }}
+          livenessProbe:
+            {{- toYaml .Values.livenessProbe | nindent 12 }}
+          {{- end }}
+          {{- if .Values.readinessProbe.enabled }}
+          readinessProbe:
+            {{- toYaml .Values.readinessProbe | nindent 12 }}
+          {{- end }}
+          resources: {{- toYaml .Values.resources | nindent 12 }}
+      imagePullSecrets:
+        {{- toYaml .Values.image.pullSecrets | nindent 8 }}
+      volumes:
+        - name: config
+          configMap:
+            name: {{ include "mysql-perf-digest-exporter.fullname" . }}
+            items:
+              - key: perf_digest2loki-config.yml
+                path: perf_digest2loki-config.yml
+      {{- with .Values.nodeSelector }}
+      nodeSelector: {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity: {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations: {{- toYaml . | nindent 8 }}
+      {{- end }}

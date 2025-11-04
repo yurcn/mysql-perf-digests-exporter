@@ -1,0 +1,17 @@
+apiVersion: v2
+name: perf-digest
+description: Exporter that reads MySQL performance digests and ships to Loki/VictoriaLogs + Prometheus/VictoriaMetrics metrics
+home: https://github.com/yurcn/mysql-perf-digests-exporter
+type: application
+version: 0.1.0
+appVersion: "3.14"
+keywords:
+- mysql
+- prometheus
+- vmetrics
+- victorialogs
+- loki
+- exporter
+maintainers:
+- name: yurcn
+icon: https://raw.githubusercontent.com/cncf/artwork/master/projects/prometheus/icon/color/prometheus-icon-color.png

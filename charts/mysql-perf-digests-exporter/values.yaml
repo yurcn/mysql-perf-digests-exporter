@@ -1,0 +1,123 @@
+image:
+  repository: ghcr.io/yurcn/mysql-perf-digests-exporter
+  tag: "latest"
+  pullPolicy: IfNotPresent
+  pullSecrets: []
+
+replicaCount: 1
+
+nameOverride: ""
+fullnameOverride: ""
+
+service:
+  type: ClusterIP
+  port: 3162
+  annotations: {}
+  labels: {}
+
+resources: {}
+  # requests:
+  #   cpu: 50m
+  #   memory: 64Mi
+  # limits:
+  #   cpu: 500m
+  #   memory: 256Mi
+
+affinity: {}
+nodeSelector: {}
+tolerations: []
+
+podAnnotations: {}
+podLabels: {}
+
+securityContext:
+  runAsNonRoot: true
+  runAsUser: 10001
+  runAsGroup: 10001
+  fsGroup: 10001
+
+serviceAccount:
+  create: true
+  name: ""
+  annotations: {}
+
+livenessProbe:
+  enabled: true
+  httpGet:
+    path: /metrics
+    port: http
+  initialDelaySeconds: 20
+  periodSeconds: 30
+readinessProbe:
+  enabled: true
+  httpGet:
+    path: /metrics
+    port: http
+  initialDelaySeconds: 5
+  periodSeconds: 10
+
+env: []
+
+config:
+  name: mysql-perf-digest-exporter
+  period: 120
+  listenAddress: 0.0.0.0
+  listenPort: 3162
+  loki:
+    url: "http://loki:3100/loki/api/v1/push"
+  mysql:
+    query: |
+      SELECT
+        SCHEMA_NAME,
+        DIGEST,
+        info AS info,
+        COUNT_STAR AS COUNT_STAR
+      FROM performance_schema.events_statements_summary_by_digest
+      ORDER BY COUNT_STAR DESC
+      LIMIT 100;
+    logColumn: info
+    extraTags: [SCHEMA_NAME, DIGEST, COUNT_STAR]
+
+    # Multi-host examples (INLINE credentials)
+    instances:
+      - name: instance
+        host: mysql-1
+        port: 3306
+        user: logger
+        pass: password
+      - name: another-instance
+        host: mysql-2
+        port: 3306
+        user: logger
+        pass: password
+
+    # Alternatively, reference credentials from a Secret per instance.
+    # When secretRef is set, it overrides `user` and `pass` from above for that instance.
+    # The Secret should contain keys `user` and `pass` (stringData or data).
+    secretRefs: []
+    #  - instanceName: instance
+    #    name: perf-digest-cred-instance
+    #  - instanceName: another-instance
+    #    name: perf-digest-cred-another
+
+  # Optional replacements applied to SQL text before sending to Loki
+  replacements: {}
+  #  "\n": " "
+
+serviceMonitor:
+  enabled: true
+  namespace: ""          # if empty, stays in release namespace
+  interval: 30s
+  scrapeTimeout: 10s
+  labels: {}
+  annotations: {}
+  honorLabels: true
+  metricRelabelings: []
+    # - action: replace
+    #   sourceLabels: [instance]
+    #   targetLabel: job
+    #   regex: "(.*)"
+    #   replacement: "$1"
+
+rbac:
+  create: false
