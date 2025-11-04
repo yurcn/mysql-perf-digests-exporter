@@ -145,6 +145,52 @@ def log_to_loki(stmt: str, tags: dict):
             if retries>10: break
             time.sleep(1.0)
 
+def _metric_name(line: str) -> str:
+    # e.g. 'perf_digest_count_star{instance="...",...} 42' -> 'perf_digest_count_star'
+    # or  '# HELP perf_digest_count_star ...' -> 'perf_digest_count_star'
+    if line.startswith("# HELP") or line.startswith("# TYPE"):
+        parts = line.split()
+        return parts[2] if len(parts) >= 3 else ""
+    # sample line
+    name = line.split("{", 1)[0].split(" ", 1)[0]
+    return name
+
+def filter_metrics_by_instance(exposition: bytes, instance_name: str) -> bytes:
+    """
+    Keep only:
+      - sample lines that contain instance="<instance_name>"
+      - matching # HELP / # TYPE for metric families that survived
+    """
+    text = exposition.decode("utf-8", errors="ignore").splitlines()
+    kept_families = set()
+    kept_samples: list[str] = []
+
+    inst_token = f'instance="{instance_name}"'
+
+    for line in text:
+        if not line or line.startswith("#"):
+            continue
+        # sample line: keep only matching instance
+        if inst_token in line:
+            kept_samples.append(line)
+            kept_families.add(_metric_name(line))
+
+    if not kept_samples:
+        # return minimal empty body with correct content-type
+        return ("\n").encode("utf-8")
+
+    out: list[str] = []
+    # emit HELP/TYPE only for families we kept
+    for line in text:
+        if line.startswith("# HELP") or line.startswith("# TYPE"):
+            name = _metric_name(line)
+            if name in kept_families:
+                out.append(line)
+    # then the samples
+    out.extend(kept_samples)
+    out.append("")
+    return ("\n".join(out)).encode("utf-8")
+
 def _fetch_rows_blocking(host,user,pw,port,query):
     conn=None
     try:
@@ -249,15 +295,19 @@ def find_instance_by_name(name: str) -> dict|None:
     return None
 
 async def handle_probe(request: web.Request):
-    name = request.query.get("instance") or (INSTANCES[0]["name"] if INSTANCES else SERVICE_NAME)
-    inst = find_instance_by_name(name) or (INSTANCES[0] if INSTANCES else None)
+    name = request.query.get("instance") or (INSTANCES[0]["name"] if INSTANCES else None)
+    if not name:
+        return web.Response(status=400, text="missing ?instance=")
+
+    inst = find_instance_by_name(name)
     if not inst:
-        return web.json_response({"ok":False,"error":"no instances configured"}, status=500)
-    target = request.query.get("target")  # optional override
-    ok, cnt = await run_probe_once(inst, override_host=target)
+        return web.Response(status=404, text=f"instance '{name}' not found")
+
+    ok, _ = await run_probe_once(inst)
     DIGEST_UP.labels(inst["name"]).set(1 if ok else 0)
-    return web.json_response({"ok":ok,"rows_processed":cnt,"instance":inst["name"],"target":target or inst["host"]},
-                             status=200 if ok else 500)
+    full = generate_latest(REG)
+    body = filter_metrics_by_instance(full, inst["name"])
+    return web.Response(body=body, headers={"Content-Type": CONTENT_TYPE_LATEST}, status=200 if ok else 500)
 
 # ----------------------------
 # Periodic

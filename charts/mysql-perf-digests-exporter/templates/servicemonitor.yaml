@@ -22,7 +22,7 @@ spec:
     jobLabel: {{ . | quote }}
     {{- end }}
   endpoints:
-    {{- if gt (len .Values.config.mysql.instances) 1 }}
+    {{- if .Values.serviceMonitor.multiTarget }}
     {{- range  .Values.config.mysql.instances }}
     - path: /probe
       port: http
@@ -48,8 +48,8 @@ spec:
       relabelings: {{ toYaml $.Values.serviceMonitor.relabelings | nindent 8 }}
     {{- end }}
       params:
-        target:
-          - {{ .host }}:{{ .port | default 3306 }}
+        instance:
+          - {{ .name }}
     {{- end }}
     {{- else }}
     - port: http

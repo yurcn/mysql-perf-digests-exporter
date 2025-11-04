@@ -105,8 +105,8 @@ config:
   #  "\n": " "
 
 serviceMonitor:
-
   enabled: true
+  multiTarget: true
   namespace: ""          # if empty, stays in release namespace
   interval: 30s
   scrapeTimeout: 10s

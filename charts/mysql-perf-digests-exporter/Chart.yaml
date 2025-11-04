@@ -3,8 +3,8 @@ name: mysql-perf-digests-exporter
 description: Exporter that reads MySQL performance digests and ships to Loki/VictoriaLogs + Prometheus/VictoriaMetrics metrics
 home: https://github.com/yurcn/mysql-perf-digests-exporter
 type: application
-version: 0.1.2
-appVersion: "0.1.2"
+version: 0.1.3
+appVersion: "0.1.3"
 keywords:
   - mysql
   - prometheus
