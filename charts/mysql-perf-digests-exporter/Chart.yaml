@@ -1,5 +1,5 @@
 apiVersion: v2
-name: perf-digest
+name: mysql-perf-digests-exporter
 description: Exporter that reads MySQL performance digests and ships to Loki/VictoriaLogs + Prometheus/VictoriaMetrics metrics
 home: https://github.com/yurcn/mysql-perf-digests-exporter
 type: application
