@@ -7,6 +7,7 @@ metadata:
 data:
   perf_digest2loki-config.yml: |
     name: {{ .Values.config.name | quote }}
+    logger: {{ .Values.config.logger | quote }}
     period: {{ .Values.config.period }}
     listen_address: {{ .Values.config.listenAddress | quote }}
     listen_port: {{ .Values.config.listenPort }}
